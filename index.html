@@ -1,0 +1,430 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Sol Auction - 5 SOL Prize</title>
+  <style>
+    /* -----------------------------
+       ESTILOS GLOBALES
+    ----------------------------- */
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Courier New', monospace;
+      background: linear-gradient(135deg, #000000, #111111);
+      color: #0f0;
+      margin: 0;
+      text-align: center;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+    }
+
+    h1, h2, h3 {
+      margin: 10px 0;
+      animation: flicker 2s infinite;
+    }
+
+    p, span {
+      margin: 5px 0;
+    }
+
+    /* Efecto flicker */
+    @keyframes flicker {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.8; }
+      70% { opacity: 0.5; }
+    }
+
+    .ascii-text {
+      font-size: 1.2em;
+      white-space: pre;
+      line-height: 1.5;
+      animation: glow 1.5s infinite;
+    }
+
+    /* Efecto glow */
+    @keyframes glow {
+      0%, 100% { color: #0f0; }
+      50% { color: #0a0; }
+    }
+
+    /* -----------------------------
+       CONTENEDORES
+    ----------------------------- */
+    .container {
+      width: 90%;
+      max-width: 600px;
+      margin: 20px auto;
+      background: rgba(0, 0, 0, 0.5); /* fondo semitransparente */
+      border: 1px solid #0f0;
+      border-radius: 8px;
+      box-shadow: 0 0 10px #0f0;
+      padding: 20px;
+      display: none;
+      transition: transform 0.3s ease, opacity 0.3s ease;
+    }
+
+    .active {
+      display: block;
+      opacity: 1;
+      transform: scale(1);
+    }
+
+    /* Para el container inicial, si se quiere que aparezca ya “visible” */
+    #wallet-container.active {
+      display: block;
+    }
+
+    /* -----------------------------
+       INPUTS Y BOTONES
+    ----------------------------- */
+    input {
+      background-color: #222;
+      color: #0f0;
+      border: 1px solid #0f0;
+      padding: 10px;
+      font-size: 1.2em;
+      width: 100%;
+      margin-bottom: 10px;
+      border-radius: 4px;
+      text-align: center;
+    }
+
+    button {
+      background-color: #0f0;
+      color: #000;
+      padding: 10px 20px;
+      font-size: 1.2em;
+      border: none;
+      cursor: pointer;
+      margin-top: 10px;
+      width: 100%;
+      border-radius: 4px;
+      transition: background-color 0.2s;
+    }
+
+    button:hover {
+      background-color: #0a0;
+    }
+
+    /* -----------------------------
+       TABLA DE SCORES / PARTICIPANTES
+    ----------------------------- */
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 20px;
+    }
+
+    th, td {
+      border: 1px solid #0f0;
+      padding: 10px;
+      text-align: center;
+    }
+
+    /* -----------------------------
+       TEXTOS DE ERROR
+    ----------------------------- */
+    #error-message, #riddle-error {
+      color: red;
+      font-size: 1em;
+      margin-top: 10px;
+    }
+
+    /* -----------------------------
+       CONTADOR
+    ----------------------------- */
+    #countdown {
+      color: #0ff;
+      font-size: 1.2em;
+      margin: 10px 0;
+      animation: flicker 2s infinite;
+    }
+
+    /* -----------------------------
+       PREGUNTAS DE ACERTIJOS
+    ----------------------------- */
+    #riddle-question {
+      margin-top: 20px;
+      font-size: 1.1em;
+      white-space: pre-line; /* Para respetar saltos de línea */
+    }
+
+    /* -----------------------------
+       FIN DE ESTILOS
+    ----------------------------- */
+  </style>
+</head>
+<body>
+
+  <!-- SECCIÓN 1: INGRESO DE WALLET -->
+  <div id="wallet-container" class="container active">
+    <h1>Sol Auction</h1>
+    <p class="ascii-text">
+      Win <span style="color:#0ff;">5 SOL</span>! <br/>
+      Enter your Solana wallet to begin.
+    </p>
+    <input type="text" id="wallet" placeholder="Enter your Solana wallet address"/>
+    <button onclick="submitWallet()">Continue</button>
+    <p id="error-message"></p>
+  </div>
+
+  <!-- SECCIÓN 2: ACERTIJOS -->
+  <div id="riddle-container" class="container">
+    <h2>Solve as many riddles as you can</h2>
+    <p id="countdown">Time Remaining: 10:00</p>
+    <p id="riddle-question">Loading...</p>
+    <input type="text" id="riddle-answer" placeholder="Enter your answer" />
+    <button onclick="checkRiddle()">Submit Answer</button>
+    <p id="riddle-error"></p>
+    <p class="ascii-text">
+      Riddles Solved: <span id="user-score">0</span>
+    </p>
+  </div>
+
+  <!-- SECCIÓN 3: TABLA (SIMULACIÓN DE OTROS USUARIOS) -->
+  <div id="auction-container" class="container">
+    <h3>Participants' Progress</h3>
+    <p>Whoever solves the most riddles in the next 10 minutes wins <span style="color:#0ff;">5 SOL</span>!</p>
+    <table>
+      <thead>
+        <tr>
+          <th>Wallet</th>
+          <th>Riddles Solved</th>
+        </tr>
+      </thead>
+      <tbody id="bids-table">
+        <!-- Filas de wallets (fake + user) -->
+      </tbody>
+    </table>
+  </div>
+
+  <!-- SECCIÓN 4: RESULTADOS FINALES -->
+  <div id="results-container" class="container">
+    <h2>Final Results</h2>
+    <p id="winner-message" style="font-size:1.3em; color:#0ff;"></p>
+    <p class="ascii-text">Thank you for participating!</p>
+  </div>
+
+  <script>
+    /********************************************
+     *        1) VALIDACIÓN DE WALLET           *
+     ********************************************/
+    const walletContainer = document.getElementById("wallet-container");
+    const riddleContainer = document.getElementById("riddle-container");
+    const auctionContainer = document.getElementById("auction-container");
+    const resultsContainer = document.getElementById("results-container");
+
+    const errorMessage = document.getElementById("error-message");
+    const userScoreSpan = document.getElementById("user-score");
+    let userWallet = "";
+    let userScore = 0;
+
+    function submitWallet() {
+      const walletInput = document.getElementById("wallet");
+      const wallet = walletInput.value.trim();
+
+      // Regex básica de Solana (32-44 caracteres base58)
+      if (/^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(wallet)) {
+        userWallet = wallet;
+        errorMessage.textContent = "";
+        // Pasamos a la pantalla de acertijos
+        walletContainer.classList.remove("active");
+        riddleContainer.classList.add("active");
+        auctionContainer.classList.add("active");
+        // Inicializamos la tabla con el usuario y los bots
+        addParticipant(userWallet + " (You)", 0);
+        initFakeWallets();
+        startTimer();
+        loadRiddle();
+      } else {
+        errorMessage.textContent = "Please enter a valid Solana wallet address.";
+      }
+    }
+
+    /********************************************
+     *             2) ACERTIJOS                 *
+     ********************************************/
+    // Puedes poner aquí todos los acertijos que quieras
+    const riddles = [
+      {
+        question: `I am not alive, yet I grow;\nI don't have lungs, yet I need air;\nI don't have a mouth, yet water kills me.\nWhat am I?`,
+        answer: "fire"
+      },
+      {
+        question: `I am the beginning of everything,\n the end of everywhere.\nI'm the beginning of eternity,\n the end of time and space.\nWhat am I?`,
+        answer: "e"
+      },
+      {
+        question: `I pass before the sun, yet make no shadow.\nWhat am I?`,
+        answer: "wind"
+      },
+      {
+        question: `Feed me, and I live.\nGive me a drink, and I die.\nWhat am I?`,
+        answer: "fire"
+      },
+      {
+        question: `I am always hungry,\nI must always be fed.\nThe finger I lick\nWill soon turn red.\nWhat am I?`,
+        answer: "fire"
+      },
+      {
+        question: `What has roots that nobody sees,\nIs taller than trees,\nUp, up it goes,\nAnd yet never grows?`,
+        answer: "mountain"
+      }
+    ];
+
+    let currentRiddleIndex = 0;
+    const riddleQuestionEl = document.getElementById("riddle-question");
+    const riddleAnswerInput = document.getElementById("riddle-answer");
+    const riddleErrorEl = document.getElementById("riddle-error");
+
+    function loadRiddle() {
+      if (currentRiddleIndex < riddles.length) {
+        riddleQuestionEl.textContent = riddles[currentRiddleIndex].question;
+        riddleAnswerInput.value = "";
+      } else {
+        // Ya no hay más acertijos
+        endAuction();
+      }
+    }
+
+    function checkRiddle() {
+      const answer = riddleAnswerInput.value.trim().toLowerCase();
+      const correct = riddles[currentRiddleIndex].answer.toLowerCase();
+
+      if (answer === correct) {
+        userScore++;
+        userScoreSpan.textContent = userScore;
+        updateParticipantScore(userWallet + " (You)", userScore);
+        riddleErrorEl.textContent = "";
+        currentRiddleIndex++;
+        loadRiddle();
+      } else {
+        riddleErrorEl.textContent = "Incorrect answer. Try again!";
+      }
+    }
+
+    /********************************************
+     *    3) SIMULACIÓN DE OTROS USUARIOS       *
+     ********************************************/
+    const bidsTable = document.getElementById("bids-table");
+    let fakeWallets = [];
+
+    // Generamos wallets falsas
+    function generateRandomWallet() {
+      const chars = "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz";
+      let walletFake = "";
+      const length = Math.floor(Math.random() * 13) + 32; // entre 32 y 44
+      for (let i = 0; i < length; i++) {
+        walletFake += chars.charAt(Math.floor(Math.random() * chars.length));
+      }
+      return walletFake;
+    }
+
+    // Inicializamos (por ejemplo, 5) wallets falsas
+    function initFakeWallets() {
+      for (let i = 0; i < 5; i++) {
+        const w = generateRandomWallet();
+        fakeWallets.push({
+          wallet: w,
+          score: Math.floor(Math.random() * 2) // pueden empezar con 0 o 1...
+        });
+        addParticipant(w, fakeWallets[i].score);
+      }
+      // Cada cierto intervalo, cada wallet falsa puede resolver un acertijo
+      setInterval(() => {
+        fakeWallets.forEach((fw) => {
+          // Con una probabilidad, incrementa su score
+          if (Math.random() < 0.4) { // 40% de probabilidad de “resolver”
+            fw.score++;
+            updateParticipantScore(fw.wallet, fw.score);
+          }
+        });
+      }, 8000); // cada 8 segundos intentan "resolver"
+    }
+
+    // Añadir un participante (usuario o fake) a la tabla
+    function addParticipant(wallet, score) {
+      const row = document.createElement("tr");
+      row.id = "row-" + wallet;
+
+      const walletCell = document.createElement("td");
+      walletCell.textContent = wallet;
+
+      const scoreCell = document.createElement("td");
+      scoreCell.textContent = score;
+
+      row.appendChild(walletCell);
+      row.appendChild(scoreCell);
+      bidsTable.appendChild(row);
+    }
+
+    // Actualizar la puntuación de un participante
+    function updateParticipantScore(wallet, newScore) {
+      const row = document.getElementById("row-" + wallet);
+      if (row) {
+        row.cells[1].textContent = newScore;
+      }
+    }
+
+    /********************************************
+     *         4) CONTEO REGRESIVO              *
+     ********************************************/
+    let timeRemaining = 600; // 10 minutos = 600 segundos
+    const countdownEl = document.getElementById("countdown");
+    let countdownInterval;
+
+    function startTimer() {
+      countdownInterval = setInterval(() => {
+        if (timeRemaining <= 0) {
+          endAuction();
+        } else {
+          timeRemaining--;
+          displayTime();
+        }
+      }, 1000);
+    }
+
+    function displayTime() {
+      let minutes = Math.floor(timeRemaining / 60);
+      let seconds = timeRemaining % 60;
+      if (seconds < 10) seconds = "0" + seconds;
+      countdownEl.textContent = `Time Remaining: ${minutes}:${seconds}`;
+    }
+
+    function endAuction() {
+      // Detener el intervalo
+      clearInterval(countdownInterval);
+      // Ocultar secciones
+      riddleContainer.classList.remove("active");
+      auctionContainer.classList.remove("active");
+      resultsContainer.classList.add("active");
+
+      // Determinar ganador
+      let finalScores = [];
+      // Usuario
+      finalScores.push({ wallet: userWallet + " (You)", score: userScore });
+      // Fakes
+      fakeWallets.forEach((fw) => {
+        finalScores.push({ wallet: fw.wallet, score: fw.score });
+      });
+      // Ordenar por score descendente
+      finalScores.sort((a, b) => b.score - a.score);
+
+      const winner = finalScores[0];
+      const winnerMessage = document.getElementById("winner-message");
+      if (winner.wallet === userWallet + " (You)") {
+        winnerMessage.textContent = `You are the winner with ${winner.score} riddles solved! You get 5 SOL!`;
+      } else {
+        winnerMessage.textContent = `Winner: ${winner.wallet} with ${winner.score} riddles solved. Better luck next time!`;
+      }
+    }
+  </script>
+</body>
+</html>
